@@ -17,7 +17,7 @@
 #include "utils/TimeUtils.h"
 #include "utils/SettingsUtils.h"
 
-const String VERSION_NUMBER = "0.0.1";
+const String VERSION_NUMBER = "0.0.2";
 
 ///////////
 // Utils //
