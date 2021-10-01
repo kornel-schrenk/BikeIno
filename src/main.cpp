@@ -1,5 +1,6 @@
 #include <M5ez.h>
 #include <M5Stack.h>
+#include <TinyGPS++.h>
 
 #include "images/jpgs.h"
 #include "images/jpgsdark.h"
@@ -17,7 +18,19 @@
 #include "utils/TimeUtils.h"
 #include "utils/SettingsUtils.h"
 
-const String VERSION_NUMBER = "0.0.2";
+const String VERSION_NUMBER = "0.0.3";
+
+/////////////
+// Sensors //
+/////////////
+
+const unsigned long GPSBaudRate = 9600;
+const int GPSUartNumber = 2;
+
+// The serial connection to the GPS device
+HardwareSerial hardwareSerial(GPSUartNumber);
+// The TinyGPS++ object
+TinyGPSPlus gps;
 
 ///////////
 // Utils //
@@ -72,30 +85,48 @@ void setup()
   Wire.begin();
   M5.Power.begin();
 
+  hardwareSerial.begin(GPSBaudRate);
+
 #include <themes/default.h>
 #include <themes/dark.h>
   ez.begin();
 
   Serial.println("\n");
-  Serial.println(F("***********"));     
-  Serial.println(F("* BikeIno *"));    
-  Serial.println(F("***********"));   
+  Serial.println(F("***********"));
+  Serial.println(F("* BikeIno *"));
+  Serial.println(F("***********"));
 
   Serial.print(F("v"));
   Serial.print(VERSION_NUMBER);
-  Serial.println("\n");  
+  Serial.println("\n");
 
   homeScreen.initHomeScreen(settingsUtils.getBikeInoSettings());
 }
 
-void loop() {
+void loop()
+{
+  // In every second load sensor data
+  if (secondChanged())
+  {
+    while (hardwareSerial.available() > 0)
+    {
+      gps.encode(hardwareSerial.read());
+    }
+
+    if (gps.charsProcessed() < 10)
+    {
+      Serial.println(F("WARNING: No GPS data.  Check wiring."));
+    }
+  }
+
   String buttonPressed = "";
   if (!_backToMenu)
   {
     buttonPressed = ez.buttons.poll();
-    if (buttonPressed != "") {
+    if (buttonPressed != "")
+    {
       Serial.println("Button pressed: " + buttonPressed);
-    }    
+    }
   }
   if (_backToMenu || buttonPressed == "Menu")
   {
@@ -118,7 +149,7 @@ void loop() {
     case 2:
       _backToMenu = false;
       _currentScreen = SCREEN_SPEED;
-      speedScreen.init(settingsUtils.getBikeInoSettings());      
+      speedScreen.init(settingsUtils.getBikeInoSettings());
       break;
     case 3:
       _backToMenu = false;
@@ -145,8 +176,9 @@ void loop() {
     //Handle button press on the current screen
     switch (_currentScreen)
     {
-    case SCREEN_HOME:      
-      if (homeScreen.handleButtonPress(buttonPressed) == SCREEN_RIDE) {
+    case SCREEN_HOME:
+      if (homeScreen.handleButtonPress(buttonPressed) == SCREEN_RIDE)
+      {
         openRideScreen();
       }
       break;
@@ -161,7 +193,7 @@ void loop() {
       break;
     case SCREEN_SENSOR:
       sensorScreen.handleButtonPress(buttonPressed);
-      break;  
+      break;
     }
   }
   else
@@ -175,19 +207,21 @@ void loop() {
     case SCREEN_RIDE:
       if (minuteChanged())
       {
-        rideScreen.refreshClockWidget();        
+        rideScreen.refreshClockWidget();
       }
-      if (minuteChanged() || secondChanged()) {
+      if (minuteChanged() || secondChanged())
+      {
         rideScreen.display();
       }
       break;
     case SCREEN_SPEED:
-      if (minuteChanged()) {
+      if (minuteChanged())
+      {
         speedScreen.refreshClockWidget();
-        speedScreen.display();
       }
-      if (secondChanged()) {
-          speedScreen.display();
+      if (minuteChanged() || secondChanged())
+      {
+        speedScreen.display(gps);
       }
       break;
     case SCREEN_LOGBOOK:
@@ -199,10 +233,11 @@ void loop() {
     case SCREEN_SENSOR:
       if (minuteChanged())
       {
-        sensorScreen.refreshClockWidget();        
+        sensorScreen.refreshClockWidget();
       }
-      if (minuteChanged() || secondChanged()) {
-        sensorScreen.display();
+      if (minuteChanged() || secondChanged())
+      {
+        sensorScreen.display(gps);
       }
       break;
     case SCREEN_SETTINGS:
@@ -210,7 +245,7 @@ void loop() {
       {
         settingsPicker.refreshClockWidget();
       }
-      break;      
+      break;
     }
   }
 }

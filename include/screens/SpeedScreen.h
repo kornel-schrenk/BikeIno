@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include "M5ez.h"
 #include "ezTime.h"
+#include "TinyGPS++.h"
 
 #include "screens/BikeInoScreen.h"
 
@@ -12,11 +13,12 @@ class SpeedScreen : public BikeInoScreen {
     public:
         void init(BikeInoSettings bikeInoSettings);
         
-        void display();
+        void display(TinyGPSPlus gps);
         
         void handleButtonPress(String buttonName);                
 
     private:
+        double _previousSpeed = 0.0;
 };
 
 #endif

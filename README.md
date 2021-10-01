@@ -5,7 +5,7 @@ This repository contains the [Arduino](https://www.arduino.cc/) code for a bike 
 
 ## Main Features
 
-* Record bike rides into a file on the Micro SD Card
+* Record bike rides into a [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) file on the Micro SD Card
 * Bike speedometer
 * Logbook for the recorded rides
 * Overall statistics
@@ -27,7 +27,7 @@ This repository contains the [Arduino](https://www.arduino.cc/) code for a bike 
 ## Development
 
 * Microsoft [Visual Studio Code](https://code.visualstudio.com/) editor
-* [PlatformIO extension](https://platformio.org/)
+* [PlatformIO](https://platformio.org/) extension
 
 ## Repository Owner 
 
