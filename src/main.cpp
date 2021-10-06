@@ -18,7 +18,15 @@
 #include "utils/TimeUtils.h"
 #include "utils/SettingsUtils.h"
 
-const String VERSION_NUMBER = "0.0.3";
+#include "ride/BikeRide.h"
+
+const String VERSION_NUMBER = "0.0.4";
+
+///////////////
+// Bike Ride //
+///////////////
+
+BikeRide bikeRide = BikeRide();
 
 /////////////
 // Sensors //
@@ -50,7 +58,7 @@ bool _backToMenu = false;
 
 MainMenu mainMenuScreen = MainMenu();
 HomeScreen homeScreen = HomeScreen(timeUtils);
-RideScreen rideScreen = RideScreen();
+RideScreen rideScreen = RideScreen(&bikeRide);
 SpeedScreen speedScreen = SpeedScreen();
 LogbookScreen logbookScreen = LogbookScreen();
 SensorScreen sensorScreen = SensorScreen();
@@ -65,7 +73,7 @@ void openRideScreen()
 {
   _backToMenu = false;
   _currentScreen = SCREEN_RIDE;
-  rideScreen.init(settingsUtils.getBikeInoSettings());
+  rideScreen.init(settingsUtils.getBikeInoSettings(), gps);
 }
 
 void openSensorScreen()
@@ -167,7 +175,7 @@ void loop()
     case 6:
       _currentScreen = SCREEN_ABOUT;
       _backToMenu = true;
-      ez.msgBox("About", "www.bikeino.hu | Version: " + VERSION_NUMBER + "| Author: kornel@schrenk.hu", "Menu");
+      ez.msgBox("About", "BikeIno | Version: " + VERSION_NUMBER + "| Author: kornel@schrenk.hu", "Menu");
       break;
     }
   }
@@ -211,7 +219,7 @@ void loop()
       }
       if (minuteChanged() || secondChanged())
       {
-        rideScreen.display();
+        rideScreen.display(gps);        
       }
       break;
     case SCREEN_SPEED:

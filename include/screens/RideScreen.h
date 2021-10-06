@@ -4,20 +4,30 @@
 #include "Arduino.h"
 #include "M5ez.h"
 #include "ezTime.h"
+#include "TinyGPS++.h"
 
+#include "ride/BikeRide.h"
 #include "screens/BikeInoScreen.h"
 
 class RideScreen : public BikeInoScreen {
 
     public:       
-        void init(BikeInoSettings bikeInoSettings);
+        RideScreen(BikeRide* bikeRide);
 
-        int display();
+        void init(BikeInoSettings bikeInoSettings, TinyGPSPlus gps);
+
+        int display(TinyGPSPlus gps);
 
         void handleButtonPress(String buttonName);
 
     private:        
         BikeInoSettings _bikeInoSettings;
+        BikeRide* _bikeRide;
+        GpsData _currentGpsData;
+        
+        GpsData _createGpsData(TinyGPSPlus gps);
+        void _displayGpsIcon(bool validGpsLocation);
+        void _displayRideDuration(unsigned int rideDuration);        
 };
 
 #endif

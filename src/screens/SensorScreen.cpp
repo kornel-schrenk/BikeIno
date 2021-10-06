@@ -6,13 +6,10 @@ void SensorScreen::init(BikeInoSettings bikeInoSettings)
     ez.header.show("Sensor");
 
     ez.buttons.show("Menu");
-}
 
-void SensorScreen::display(TinyGPSPlus gps)
-{
     ez.canvas.color(ez.theme->foreground);
     ez.canvas.font(sans26);
-    
+
     int x = 50;
     int y = 50;
 
@@ -22,6 +19,12 @@ void SensorScreen::display(TinyGPSPlus gps)
     ez.canvas.print("Lon:");
     ez.canvas.pos(x, y + 60);
     ez.canvas.print("Speed:");
+}
+
+void SensorScreen::display(TinyGPSPlus gps)
+{
+    int x = 50;
+    int y = 50;
 
     if (gps.location.isValid())
     {
