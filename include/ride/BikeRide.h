@@ -5,6 +5,8 @@
 #include <M5ez.h>
 #include <ezTime.h>
 #include <TinyGPS++.h>
+#include "utils/GPX.h"
+#include "utils/FileUtils.h"
 
 // External interface to the obtain GPS data
 struct GpsData {
@@ -12,6 +14,7 @@ struct GpsData {
     double latitude = 0.0;
     double longitude = 0.0;
     double currentSpeed = 0.0;    // In km/h
+    double altitude = 0.0;
 };
 
 //Internal representation of the current bike ride data
@@ -19,6 +22,7 @@ struct RideData {
     double latitude = 0.0;
     double longitude = 0.0;
     double currentSpeed = 0.0;
+    double altitude = 0.0;
     double averageSpeed = 0.0;
     double distance = 0.0;
     unsigned int durationInSeconds = 0;
@@ -49,6 +53,10 @@ private:
     bool _pausedRide = false;
 
     RideData* _rideData;
+    GPX _gpx;
+    FileUtils _fileUtils;
+    String _rideLogFilePath;
+
     void _debugRideData(RideData* rideData);
 };
 

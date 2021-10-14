@@ -10,11 +10,12 @@ GpsData RideScreen::_createGpsData(TinyGPSPlus gps)
     GpsData gpsData;
     gpsData.valid = true;
 
-    if (gps.location.isValid() && gps.speed.isValid()) 
+    if (gps.location.isValid() && gps.speed.isValid() && gps.altitude.isValid()) 
     {
         gpsData.latitude = gps.location.lat();
         gpsData.longitude = gps.location.lng();        
-        gpsData.currentSpeed = gps.speed.kmph();
+        gpsData.currentSpeed = gps.speed.kmph();        
+        gpsData.altitude = gps.altitude.meters();
     } else {
         gpsData.valid = false;    
     }

@@ -20,7 +20,7 @@
 
 #include "ride/BikeRide.h"
 
-const String VERSION_NUMBER = "0.0.4";
+const String VERSION_NUMBER = "0.0.5";
 
 ///////////////
 // Bike Ride //
@@ -107,6 +107,10 @@ void setup()
   Serial.print(F("v"));
   Serial.print(VERSION_NUMBER);
   Serial.println("\n");
+
+  if (!SD.begin()) {
+    Serial.println(F("SD Card Mount Failed"));  
+  }
 
   homeScreen.initHomeScreen(settingsUtils.getBikeInoSettings());
 }
