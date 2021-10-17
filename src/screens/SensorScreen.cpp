@@ -19,6 +19,8 @@ void SensorScreen::init(BikeInoSettings bikeInoSettings)
     ez.canvas.print("Lon:");
     ez.canvas.pos(x, y + 60);
     ez.canvas.print("Speed:");
+    ez.canvas.pos(x, y + 90);
+    ez.canvas.print("Altitude:");
 }
 
 void SensorScreen::display(TinyGPSPlus gps)
@@ -39,8 +41,14 @@ void SensorScreen::display(TinyGPSPlus gps)
         ez.canvas.pos(x + 100, y + 60);
         ez.canvas.printf("%.3f km/h", gps.speed.kmph());
     }
+
+    if (gps.altitude.isValid())
+    {
+        ez.canvas.pos(x + 100, y + 90);
+        ez.canvas.printf("%.0f m", gps.altitude.meters());
+    }
     
-    ez.canvas.pos(x - 5, y + 110);
+    ez.canvas.pos(x - 5, y + 130);
     if (gps.date.isValid())
     {
         ez.canvas.printf("%04d-%02d-%02d ", gps.date.year(), gps.date.month(), gps.date.day());

@@ -13,17 +13,17 @@ void SpeedScreen::init(BikeInoSettings bikeInoSettings)
     ez.canvas.print("km/h");
 
     ez.canvas.font(numonly7seg96);
-    ez.canvas.pos(100, 60);  
+    ez.canvas.pos(80, 60);  
     ez.canvas.printf("%.0f", _previousSpeed);
 }
 
 void SpeedScreen::display(TinyGPSPlus gps)
 {    
-    if (gps.speed.isValid())
+    if (gps.speed.isUpdated())
     {
         double currentSpeed = gps.speed.kmph();
         if (_previousSpeed != currentSpeed) {
-            ez.canvas.pos(100, 60);            
+            ez.canvas.pos(80, 60);            
             ez.canvas.printf("%.0f", currentSpeed);
             _previousSpeed = currentSpeed;
         }

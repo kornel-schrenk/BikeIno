@@ -12,113 +12,92 @@ bool BikeRide::isRidePaused()
 
 double BikeRide::getCurrentSpeed()
 {
-    return this->_rideData->currentSpeed;
+    return _rideData.currentSpeed;
 }
 
 unsigned int BikeRide::getDuration()
 {
-    return this->_rideData->durationInSeconds;
+    return _rideData.durationInSeconds;
 }
 
 double BikeRide::getDistance()
 {
-    return this->_rideData->distance;
+    return _rideData.distance;
 }
 
 double BikeRide::getAverageSpeed()
 {
-    return this->_rideData->averageSpeed;
+    return _rideData.averageSpeed;
 }
 
-void BikeRide::startRide(GpsData gpsData)
+void BikeRide::startRide(double currentSpeed, double latitude, double longitude, double altitude)
 {
+    //Serial.printf("START Speed: %.1f km/h Lat: %f Lon: %f Ela: %.0f m\n", currentSpeed, latitude, longitude, altitude);
+
     this->_rideInProgress = true;
     this->_pausedRide = false;
-
-    this->_rideData = new RideData;    
-    this->_rideData->latitude = gpsData.latitude;
-    this->_rideData->longitude = gpsData.longitude;
-    this->_rideData->currentSpeed = gpsData.currentSpeed;
-    this->_rideData->altitude = gpsData.altitude;
-    this->_rideData->averageSpeed = 0.0;
-    this->_rideData->distance = 0.0;
-    this->_rideData-> durationInSeconds = 0;
-    this->_rideData->rideTimestamp = ez.clock.tz.now();     
+   
+    _rideData.latitude = latitude;
+    _rideData.longitude = longitude;
+    _rideData.currentSpeed = currentSpeed;
+    _rideData.altitude = altitude;
+    _rideData.averageSpeed = 0.0;
+    _rideData.distance = 0.0;
+    _rideData.durationInSeconds = 0;
+    _rideData.rideTimestamp = millis();     
 
     //Start GPX output
-    String dateTime = ez.clock.tz.dateTime("Y-m-d-H:i:s.v");
     this->_rideLogFilePath = "/RideIno/" + ez.clock.tz.dateTime("YmdHisv") + "-ride.gpx";
-    
-    String gpxOpenText = _gpx.getOpen();    
+        
     _gpx.setName(this->_rideLogFilePath);
-    _gpx.setDesc("RideIno track on " + dateTime);
+    _gpx.setDesc("RideIno track on " + ez.clock.tz.dateTime("Y-m-d-H:i:s.v"));
 
-    String gpxTrackOpenText = _gpx.getTrackOpen();
-    String gpxInfoText = _gpx.getInfo();
-    String gpxTrackSegmentOpenText = _gpx.getTrackSegmentOpen();
+    String gpxOutput = _gpx.getOpen() + _gpx.getTrackOpen() + _gpx.getInfo() + _gpx.getTrackSegmentOpen();
 
     //SD card output    
     _fileUtils.openRideLog(this->_rideLogFilePath);
 
     Serial.println(this->_rideLogFilePath + F(" was opened"));
 
-    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxOpenText);
-    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxTrackOpenText);
-    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxInfoText);
-    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxTrackSegmentOpenText);
+    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxOutput);
 
     //Serial output for logging
-    Serial.print(gpxOpenText);
-    Serial.print(gpxTrackOpenText);
-    Serial.print(gpxInfoText);
-    Serial.println(gpxTrackSegmentOpenText);    
+    Serial.println(gpxOutput);    
 }
     
-void BikeRide::progressRide(GpsData gpsData)
-{       
-    RideData* newRideData = new RideData;
-
+void BikeRide::progressRide(bool isValidLocation, double currentSpeed, double latitude, double longitude, double altitude)
+{           
     //Ride duration calculation
-    newRideData->rideTimestamp = ez.clock.tz.now();
-    unsigned int timeDifferenceSeconds = (newRideData->rideTimestamp - _rideData->rideTimestamp);    
-    newRideData->durationInSeconds = (_rideData->durationInSeconds + timeDifferenceSeconds);
+    unsigned int timeDifferenceMilliSeconds = (millis() - _rideData.rideTimestamp);          
+    int duration = timeDifferenceMilliSeconds / 1000;    
+    //Serial.printf("PROGRESS Duration: %i Valid: %s Speed: %.1f km/h Lat: %f Lon: %f Ela: %.0f m\n", durationInSeconds, isValidLocation?"true":"false", currentSpeed, latitude, longitude, altitude);
 
-    if (gpsData.valid) 
+    if (isValidLocation) 
     {
-        newRideData->latitude = gpsData.latitude;
-        newRideData->longitude = gpsData.longitude;
-        newRideData->currentSpeed = gpsData.currentSpeed;
-        newRideData->altitude = gpsData.altitude;
+        _rideData.latitude = latitude;
+        _rideData.longitude = longitude;
+        _rideData.currentSpeed = currentSpeed;
+        _rideData.altitude = altitude;
 
-        //Ride distance calculation
-        double distanceCovered = 0.0;
-        if (_rideData->latitude != 0.0 && _rideData->longitude != 0.0) {
-            distanceCovered = 
-                TinyGPSPlus::distanceBetween(_rideData->latitude, _rideData->longitude, newRideData->latitude, newRideData->longitude);
-        } 
-        newRideData->distance = (_rideData->distance + (distanceCovered / 1000));
+        if (duration > _rideData.durationInSeconds) {
+            //Log bike ride to the SD card in GPX format
+            String gpxTrackPointText = _gpx.getPt(GPX_TRKPT, String(_rideData.longitude, 6), String(_rideData.latitude, 6), String(_rideData.altitude, 1));    
+            Serial.print(gpxTrackPointText);        
+            _fileUtils.appendRideLog(this->_rideLogFilePath, gpxTrackPointText); 
 
-        //Average speed calculation
-        newRideData->averageSpeed = distanceCovered / (newRideData->durationInSeconds / 3600);
+            double distanceCovered =  _rideData.currentSpeed *  (duration - _rideData.durationInSeconds)/ 3600;
+            _rideData.durationInSeconds = duration;       
+
+            // //Average speed calculation
+            if (distanceCovered != 0.0) {
+                _rideData.distance = _rideData.distance + distanceCovered;
+                _rideData.averageSpeed = _rideData.distance * 3600 / _rideData.durationInSeconds;        
+            }                
+        }
     } else {
-        //If the GPS data is not valid stop the ride on the last valid position
-        newRideData->latitude = _rideData->latitude;
-        newRideData->longitude = _rideData->longitude;
-        newRideData->distance = _rideData->distance;
-        newRideData->currentSpeed = 0.0;
-        newRideData->altitude = 0.0;
-        newRideData->averageSpeed = 0.0;
+        //If the GPS location is not valid stop the ride on the last valid position
+        _rideData.currentSpeed = 0.0;
     }  
-
-    //Log bike ride to the SD card in GPX format
-    String gpxTrackPointText = _gpx.getPt(GPX_TRKPT, String(newRideData->longitude, 6), String(newRideData->latitude, 6), String(newRideData->altitude, 1));
-    
-    Serial.print(gpxTrackPointText);
-    if (gpsData.valid) {
-        _fileUtils.appendRideLog(this->_rideLogFilePath, gpxTrackPointText);
-    }
-
-    this->_rideData = newRideData;
 }
 
 void BikeRide::pauseRide()
@@ -134,31 +113,14 @@ void BikeRide::restartRide()
 void BikeRide::stopRide()
 {
     this->_rideInProgress = false;
+    this->_pausedRide = false;
 
     //Close GPX output
-    String gpxTrackSegmentCloseText = _gpx.getTrackSegmentClose();
-    String gpxTrackCloseText = _gpx.getTrackClose();
-    String gpxCloseText = _gpx.getClose();
-    
-    //Serial output for logging
-    Serial.print(gpxTrackSegmentCloseText);
-    Serial.print(gpxTrackCloseText);
-    Serial.print(gpxCloseText);
+    String gpxOutput = _gpx.getTrackSegmentClose() + _gpx.getTrackClose() + _gpx.getClose();
 
     //SD card output
-    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxTrackSegmentCloseText);
-    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxTrackCloseText);
-    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxCloseText);
-}
-
-void BikeRide::_debugRideData(RideData* rideData)
-{
-    Serial.println(F("\nCurrent Ride data:"));
-    Serial.printf("latitude: %f ", rideData->latitude);
-    Serial.printf("longitude: %f\n", rideData->longitude);
-    Serial.printf("current speed: %f ", rideData->currentSpeed);
-    Serial.printf("average speed: %f\n", rideData->averageSpeed);
-    Serial.printf("distance: %f\n", rideData->distance);
-    Serial.printf("duration: %d ", rideData->durationInSeconds);    
-    Serial.printf("timestamp: %lu\n", rideData->rideTimestamp);    
+    _fileUtils.appendRideLog(this->_rideLogFilePath, gpxOutput);
+    
+    //Serial output for logging
+    Serial.println(gpxOutput);
 }

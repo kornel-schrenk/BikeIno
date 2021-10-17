@@ -18,14 +18,12 @@ class RideScreen : public BikeInoScreen {
 
         int display(TinyGPSPlus gps);
 
-        void handleButtonPress(String buttonName);
+        void handleButtonPress(String buttonName, TinyGPSPlus gps);
 
     private:        
         BikeInoSettings _bikeInoSettings;
         BikeRide* _bikeRide;
-        GpsData _currentGpsData;
         
-        GpsData _createGpsData(TinyGPSPlus gps);
         void _displayGpsIcon(bool validGpsLocation);
         void _displayRideDuration(unsigned int rideDuration);        
 };

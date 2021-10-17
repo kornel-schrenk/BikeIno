@@ -20,7 +20,7 @@
 
 #include "ride/BikeRide.h"
 
-const String VERSION_NUMBER = "0.0.5";
+const String VERSION_NUMBER = "0.0.6";
 
 ///////////////
 // Bike Ride //
@@ -195,7 +195,7 @@ void loop()
       }
       break;
     case SCREEN_RIDE:
-      rideScreen.handleButtonPress(buttonPressed);
+      rideScreen.handleButtonPress(buttonPressed, gps);
       break;
     case SCREEN_SPEED:
       speedScreen.handleButtonPress(buttonPressed);

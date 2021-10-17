@@ -5,24 +5,6 @@ RideScreen::RideScreen(BikeRide* bikeRide)
     _bikeRide = bikeRide;
 }
 
-GpsData RideScreen::_createGpsData(TinyGPSPlus gps)
-{
-    GpsData gpsData;
-    gpsData.valid = true;
-
-    if (gps.location.isValid() && gps.speed.isValid() && gps.altitude.isValid()) 
-    {
-        gpsData.latitude = gps.location.lat();
-        gpsData.longitude = gps.location.lng();        
-        gpsData.currentSpeed = gps.speed.kmph();        
-        gpsData.altitude = gps.altitude.meters();
-    } else {
-        gpsData.valid = false;    
-    }
-
-    return gpsData;
-}
-
 void RideScreen::_displayGpsIcon(bool validGpsLocation)
 {
     if (validGpsLocation)
@@ -101,51 +83,44 @@ void RideScreen::init(BikeInoSettings bikeInoSettings, TinyGPSPlus gps)
     ez.canvas.print("0.0");
     ez.canvas.pos(200, 130);
     ez.canvas.print("0.0");
-
-    _currentGpsData = this->_createGpsData(gps);
-    this->_displayGpsIcon(this->_currentGpsData.valid);
+        
+    this->_displayGpsIcon(gps.location.isValid());
 }
 
 int RideScreen::display(TinyGPSPlus gps)
 {
-    this->_currentGpsData = this->_createGpsData(gps);
-
-    this->_displayGpsIcon(this->_currentGpsData.valid);
+    this->_displayGpsIcon(gps.location.isValid());
 
     if (this->_bikeRide->isRideInProgress())
     {
-        if (this->_currentGpsData.valid) 
-        {
-            ez.canvas.pos(10, 40);
-            ez.canvas.printf("%.0f", this->_bikeRide->getCurrentSpeed());
-        }
+        ez.canvas.pos(10, 40);
+        ez.canvas.printf("%.0f", gps.speed.kmph());
+
+        //Serial.printf("RIDE Speed: %.1f km/h\n", gps.speed.kmph());
 
         if (!this->_bikeRide->isRidePaused())
         {
-            this->_bikeRide->progressRide(this->_currentGpsData);
+            this->_bikeRide->progressRide(gps.location.isValid(), gps.speed.kmph(), gps.location.lat(), gps.location.lng(), gps.altitude.meters());
 
             //Ride duration display
             this->_displayRideDuration(this->_bikeRide->getDuration());
 
-            if (this->_currentGpsData.valid) 
-            {
-                //Ride distance display
-                ez.canvas.pos(10, 130);                
-                ez.canvas.print(this->_bikeRide->getDistance());
-                //Average ride speed display
-                ez.canvas.pos(200, 130);
-                ez.canvas.print(this->_bikeRide->getAverageSpeed());                
-            }
+            //Ride distance display
+            ez.canvas.pos(10, 130);                
+            ez.canvas.printf("%.1f", this->_bikeRide->getDistance());
+            //Average ride speed display
+            ez.canvas.pos(200, 130);
+            ez.canvas.printf("%.1f", this->_bikeRide->getAverageSpeed());                
         }
     }
     
     return STAY_ON_SCREEN;
 }
 
-void RideScreen::handleButtonPress(String buttonName)
+void RideScreen::handleButtonPress(String buttonName, TinyGPSPlus gps)
 {
     if (buttonName == "Start") {
-        this->_bikeRide->startRide(this->_currentGpsData);
+        this->_bikeRide->startRide(gps.speed.kmph(), gps.location.lat(), gps.location.lng(), gps.altitude.meters());
         ez.buttons.show("Pause # Menu # Stop");
     }
     else if (buttonName == "Stop") {
