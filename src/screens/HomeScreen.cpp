@@ -1,11 +1,5 @@
 #include "Preferences.h"
-
 #include "screens/HomeScreen.h"
-
-HomeScreen::HomeScreen(TimeUtils timeUtils)
-{
-    _timeUtils = timeUtils;    
-}
 
 void HomeScreen::updateTime()
 {    
@@ -102,7 +96,7 @@ int HomeScreen::handleButtonPress(String buttonName)
   {
     ez.buttons.show("$Update # Menu # Ride");
 
-    if (_timeUtils.updateTimeFromNTPServer()) {
+    if (TimeUtils::updateTimeFromNTPServer()) {
       ez.msgBox("Updated", dateTime(ez.clock.tz.now(), "Y-m-d H:i:s") + "||was set.", "Ok");
     } else {
       ez.msgBox("Error", "Time update failed.", "Ok");

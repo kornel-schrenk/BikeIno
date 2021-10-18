@@ -51,12 +51,12 @@ void SensorScreen::display(TinyGPSPlus gps)
     ez.canvas.pos(x - 5, y + 130);
     if (gps.date.isValid())
     {
-        ez.canvas.printf("%04d-%02d-%02d ", gps.date.year(), gps.date.month(), gps.date.day());
+        ez.canvas.printf("%04d-%02d-%02d ", gps.date.year(), gps.date.month(), gps.date.day());        
     }
     if (gps.time.isValid())
     {        
         ez.canvas.printf(" %02d:%02d:%02d", gps.time.hour(), gps.time.minute(), gps.time.second());
-    }    
+    }
 }
 
 void SensorScreen::handleButtonPress(String buttonName)

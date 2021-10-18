@@ -10,11 +10,12 @@
 class TimeUtils
 {
 	public:		
-		bool updateTimeFromNTPServer();
-		String setDateTime(int year, int month, int day, int hour, int minute, int second);
+		static bool updateTimeFromNTPServer();
+		static String createUTCTime(int year, int month, int day, int hour, int minute, int second);
 
 	private:
-		String _getTimezoneLocation();		
+		static String _getTimezoneLocation();	
+		static String _zeroPad(int number);	
 };
 
 #endif /* TIMEUTILS_H_ */

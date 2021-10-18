@@ -34,7 +34,7 @@ public:
     // Lifecycle methods //
 
     void startRide(double currentSpeed, double latitude, double longitude, double altitude);
-    void progressRide(bool isValidLocation, double currentSpeed, double latitude, double longitude, double altitude);
+    void progressRide(bool isValidLocation, double currentSpeed, double latitude, double longitude, double altitude, String utcTime);
     void pauseRide();
     void restartRide();
     void stopRide();

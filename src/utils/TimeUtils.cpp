@@ -25,11 +25,13 @@ bool TimeUtils::updateTimeFromNTPServer()
 	return false;
 }
 
-String TimeUtils::setDateTime(int year, int month, int day, int hour, int minute, int second)
+String TimeUtils::createUTCTime(int year, int month, int day, int hour, int minute, int second)
 {
-	//Set time in ezTime
-	setTime(hour, minute, second, day, month, year);
+	//UTC (in ISO 8601), like this: <time>2018-06-30T05:44:13Z</time>
+	return String(year, 10) + "-" + _zeroPad(month) + "-" + _zeroPad(day) + "T" + _zeroPad(hour) + ":" + _zeroPad(minute) + ":" + _zeroPad(second) + "Z";
+}
 
-	//Return with the current time
-	return ez.clock.tz.dateTime("Y-m-d H:i:s");
+String TimeUtils::_zeroPad(int number)
+{
+	return number < 10 ? "0" + String(number, 10) : String(number, 10);
 }

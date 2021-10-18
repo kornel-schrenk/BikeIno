@@ -8,6 +8,7 @@
 
 #include "ride/BikeRide.h"
 #include "screens/BikeInoScreen.h"
+#include "utils/TimeUtils.h"
 
 class RideScreen : public BikeInoScreen {
 

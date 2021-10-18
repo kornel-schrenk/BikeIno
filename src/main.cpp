@@ -20,7 +20,7 @@
 
 #include "ride/BikeRide.h"
 
-const String VERSION_NUMBER = "0.0.6";
+const String VERSION_NUMBER = "0.0.7";
 
 ///////////////
 // Bike Ride //
@@ -44,7 +44,6 @@ TinyGPSPlus gps;
 // Utils //
 ///////////
 
-TimeUtils timeUtils = TimeUtils();
 SettingsUtils settingsUtils = SettingsUtils();
 
 /////////////
@@ -57,7 +56,7 @@ int16_t _lastPickedMainMenuIndex = 1;
 bool _backToMenu = false;
 
 MainMenu mainMenuScreen = MainMenu();
-HomeScreen homeScreen = HomeScreen(timeUtils);
+HomeScreen homeScreen = HomeScreen();
 RideScreen rideScreen = RideScreen(&bikeRide);
 SpeedScreen speedScreen = SpeedScreen();
 LogbookScreen logbookScreen = LogbookScreen();

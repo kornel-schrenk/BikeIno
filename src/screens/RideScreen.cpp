@@ -100,7 +100,8 @@ int RideScreen::display(TinyGPSPlus gps)
 
         if (!this->_bikeRide->isRidePaused())
         {
-            this->_bikeRide->progressRide(gps.location.isValid(), gps.speed.kmph(), gps.location.lat(), gps.location.lng(), gps.altitude.meters());
+            this->_bikeRide->progressRide(gps.location.isValid(), gps.speed.kmph(), gps.location.lat(), gps.location.lng(), gps.altitude.meters(), 
+                TimeUtils::createUTCTime(gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second()));
 
             //Ride duration display
             this->_displayRideDuration(this->_bikeRide->getDuration());

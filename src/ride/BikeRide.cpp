@@ -65,7 +65,7 @@ void BikeRide::startRide(double currentSpeed, double latitude, double longitude,
     Serial.println(gpxOutput);    
 }
     
-void BikeRide::progressRide(bool isValidLocation, double currentSpeed, double latitude, double longitude, double altitude)
+void BikeRide::progressRide(bool isValidLocation, double currentSpeed, double latitude, double longitude, double altitude, String utcTime)
 {           
     //Ride duration calculation
     unsigned int timeDifferenceMilliSeconds = (millis() - _rideData.rideTimestamp);          
@@ -81,8 +81,9 @@ void BikeRide::progressRide(bool isValidLocation, double currentSpeed, double la
 
         if (duration > _rideData.durationInSeconds) {
             //Log bike ride to the SD card in GPX format
-            String gpxTrackPointText = _gpx.getPt(GPX_TRKPT, String(_rideData.longitude, 6), String(_rideData.latitude, 6), String(_rideData.altitude, 1));    
-            Serial.print(gpxTrackPointText);        
+            String gpxTrackPointText = 
+                _gpx.getPt(GPX_TRKPT, String(_rideData.longitude, 6), String(_rideData.latitude, 6), String(_rideData.altitude, 1), utcTime);    
+            Serial.print(gpxTrackPointText);
             _fileUtils.appendRideLog(this->_rideLogFilePath, gpxTrackPointText); 
 
             double distanceCovered =  _rideData.currentSpeed *  (duration - _rideData.durationInSeconds)/ 3600;

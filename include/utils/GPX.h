@@ -46,6 +46,7 @@ class GPX{
     String getInfo();
     String getPt(String typ, String lon, String lat);
     String getPt(String typ, String lon, String lat, String ele);
+    String getPt(String typ, String lon, String lat, String ele, String time);
     void setMetaName(String name);
     void setMetaDesc(String desc);
     void setName(String name);

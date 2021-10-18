@@ -74,11 +74,16 @@ String GPX::getPt(String typ, String lon, String lat){
     localStr += _GPX_SYM_HEAD;
     localStr += _sym;
     localStr += _GPX_SYM_TAIL;
-  }
+  }  
   if (_src.length() > 0){
     localStr += _GPX_SRC_HEAD;
     localStr += _src;
     localStr += _GPX_SRC_TAIL;
+  }
+  if (_time.length() > 0){
+    localStr += _GPX_TIME_HEAD;
+    localStr += _time;
+    localStr += _GPX_TIME_TAIL;
   }
   String tail = String(_GPX_PT_TAIL);
   tail.replace("TYPE",typ);
@@ -88,6 +93,12 @@ String GPX::getPt(String typ, String lon, String lat){
     
 String GPX::getPt(String typ, String lon, String lat, String ele){
   this->_ele = ele;
+  return this->getPt(typ, lon, lat);
+}
+
+String GPX::getPt(String typ, String lon, String lat, String ele, String time){
+  this->_ele = ele;
+  this->_time = time;
   return this->getPt(typ, lon, lat);
 }
 
@@ -112,6 +123,9 @@ void GPX::setSym(String sym){
 }
 void GPX::setSrc(String src){
   _src = src;
+}
+void GPX::setTime(String time){
+  _time = time;
 }
 
 String GPX::_wrapCDATA(String input){

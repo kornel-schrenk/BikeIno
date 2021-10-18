@@ -11,7 +11,6 @@
 class HomeScreen : public BikeInoScreen {
 
     public:
-        HomeScreen(TimeUtils timeUtils);
         void initHomeScreen(BikeInoSettings bikeInoSettings);
         
         void displayHomeClock();
@@ -23,7 +22,6 @@ class HomeScreen : public BikeInoScreen {
 
     private:        
         BikeInoSettings _bikeInoSettings;
-        TimeUtils _timeUtils;
 };
 
 #endif
