@@ -19,7 +19,7 @@ class RideScreen : public BikeInoScreen {
 
         int display(TinyGPSPlus gps);
 
-        void handleButtonPress(String buttonName, TinyGPSPlus gps);
+        int handleButtonPress(String buttonName, TinyGPSPlus gps);
 
     private:        
         BikeInoSettings _bikeInoSettings;

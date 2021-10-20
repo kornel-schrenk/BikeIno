@@ -9,6 +9,7 @@
 #define SCREEN_LOGBOOK    350
 #define SCREEN_SETTINGS   360
 #define SCREEN_ABOUT      370
+#define SCREEN_SUMMARY    380
 
 #include "images/jpgs.h"
 #include "images/jpgsdark.h"

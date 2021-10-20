@@ -30,6 +30,16 @@ double BikeRide::getAverageSpeed()
     return _rideData.averageSpeed;
 }
 
+String BikeRide::getRideStartDateTime()
+{
+    return _rideData.rideStartDateTime;
+}
+
+String BikeRide::getRideEndDateTime()
+{
+    return _rideData.rideEndDateTime;
+}
+
 void BikeRide::startRide(double currentSpeed, double latitude, double longitude, double altitude)
 {
     //Serial.printf("START Speed: %.1f km/h Lat: %f Lon: %f Ela: %.0f m\n", currentSpeed, latitude, longitude, altitude);
@@ -48,9 +58,10 @@ void BikeRide::startRide(double currentSpeed, double latitude, double longitude,
 
     //Start GPX output
     this->_rideLogFilePath = "/RideIno/" + ez.clock.tz.dateTime("YmdHisv") + "-ride.gpx";
-        
+
+    _rideData.rideStartDateTime = ez.clock.tz.dateTime("Y-m-d-H:i:s");    
     _gpx.setName(this->_rideLogFilePath);
-    _gpx.setDesc("RideIno track on " + ez.clock.tz.dateTime("Y-m-d-H:i:s.v"));
+    _gpx.setDesc("RideIno track on " + _rideData.rideStartDateTime);
 
     String gpxOutput = _gpx.getOpen() + _gpx.getTrackOpen() + _gpx.getInfo() + _gpx.getTrackSegmentOpen();
 
@@ -115,6 +126,8 @@ void BikeRide::stopRide()
 {
     this->_rideInProgress = false;
     this->_pausedRide = false;
+
+    _rideData.rideEndDateTime= ez.clock.tz.dateTime("Y-m-d-H:i:s");
 
     //Close GPX output
     String gpxOutput = _gpx.getTrackSegmentClose() + _gpx.getTrackClose() + _gpx.getClose();

@@ -48,9 +48,9 @@ void RideScreen::init(BikeInoSettings bikeInoSettings, TinyGPSPlus gps)
     if (_bikeRide->isRideInProgress()) 
     {
         if (_bikeRide->isRidePaused()) {
-            ez.buttons.show("Restart # Menu # Stop");
+            ez.buttons.show("Restart # # Stop");
         } else {
-            ez.buttons.show("Pause # Menu # Stop");
+            ez.buttons.show("Pause # # Stop");
         }        
     } else {
         ez.buttons.show(" # Menu # Start");
@@ -118,23 +118,25 @@ int RideScreen::display(TinyGPSPlus gps)
     return STAY_ON_SCREEN;
 }
 
-void RideScreen::handleButtonPress(String buttonName, TinyGPSPlus gps)
+int RideScreen::handleButtonPress(String buttonName, TinyGPSPlus gps)
 {
     if (buttonName == "Start") {
         this->_bikeRide->startRide(gps.speed.kmph(), gps.location.lat(), gps.location.lng(), gps.altitude.meters());
-        ez.buttons.show("Pause # Menu # Stop");
+        ez.buttons.show("Pause # # Stop");
+        return STAY_ON_SCREEN;
     }
     else if (buttonName == "Stop") {
         this->_bikeRide->stopRide();
-
-        //TODO Navigate to the Ride Summary Screen
+        return SCREEN_SUMMARY;
     } 
     else if (buttonName == "Pause") {
         this->_bikeRide->pauseRide();
-        ez.buttons.show("Restart # Menu # Stop");
+        ez.buttons.show("Restart # # Stop");
+        return STAY_ON_SCREEN;
     } 
     else if (buttonName == "Restart") {
         this->_bikeRide->restartRide();
-        ez.buttons.show("Pause # Menu # Stop");
+        ez.buttons.show("Pause # # Stop");
+        return STAY_ON_SCREEN;
     }
 }

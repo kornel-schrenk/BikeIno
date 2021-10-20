@@ -17,7 +17,9 @@ struct RideData {
     double averageSpeed = 0.0;
     double distance = 0.0;
     unsigned long rideTimestamp;
-    unsigned int durationInSeconds = 0;        
+    unsigned int durationInSeconds = 0;
+    String rideStartDateTime = "";
+    String rideEndDateTime = "";        
 };
 
 class BikeRide
@@ -29,7 +31,9 @@ public:
     double getCurrentSpeed();
     unsigned int getDuration();
     double getDistance();
-    double getAverageSpeed();    
+    double getAverageSpeed();
+    String getRideStartDateTime();
+    String getRideEndDateTime();    
 
     // Lifecycle methods //
 

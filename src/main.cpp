@@ -12,6 +12,7 @@
 #include "screens/SpeedScreen.h"
 #include "screens/LogbookScreen.h"
 #include "screens/SensorScreen.h"
+#include "screens/SummaryScreen.h"
 
 #include "pickers/SettingsPicker.h"
 
@@ -20,7 +21,7 @@
 
 #include "ride/BikeRide.h"
 
-const String VERSION_NUMBER = "0.0.7";
+const String VERSION_NUMBER = "0.0.8";
 
 ///////////////
 // Bike Ride //
@@ -61,6 +62,7 @@ RideScreen rideScreen = RideScreen(&bikeRide);
 SpeedScreen speedScreen = SpeedScreen();
 LogbookScreen logbookScreen = LogbookScreen();
 SensorScreen sensorScreen = SensorScreen();
+SummaryScreen summaryScreen = SummaryScreen(&bikeRide);
 
 SettingsPicker settingsPicker;
 
@@ -80,6 +82,13 @@ void openSensorScreen()
   _backToMenu = false;
   _currentScreen = SCREEN_SENSOR;
   sensorScreen.init(settingsUtils.getBikeInoSettings());
+}
+
+void openSummaryScreen()
+{
+  _backToMenu = false;
+  _currentScreen = SCREEN_SUMMARY;
+  summaryScreen.init(settingsUtils.getBikeInoSettings());
 }
 
 ///////////////////////
@@ -194,7 +203,10 @@ void loop()
       }
       break;
     case SCREEN_RIDE:
-      rideScreen.handleButtonPress(buttonPressed, gps);
+      if (rideScreen.handleButtonPress(buttonPressed, gps) == SCREEN_SUMMARY)
+      {
+        openSummaryScreen();
+      } 
       break;
     case SCREEN_SPEED:
       speedScreen.handleButtonPress(buttonPressed);
@@ -205,6 +217,9 @@ void loop()
     case SCREEN_SENSOR:
       sensorScreen.handleButtonPress(buttonPressed);
       break;
+    case SCREEN_SUMMARY:
+      summaryScreen.handleButtonPress(buttonPressed);
+      break;  
     }
   }
   else
@@ -257,6 +272,12 @@ void loop()
         settingsPicker.refreshClockWidget();
       }
       break;
+    case SCREEN_SUMMARY:
+      if (minuteChanged())
+      {
+        settingsPicker.refreshClockWidget();
+      }
+      break;      
     }
   }
 }
