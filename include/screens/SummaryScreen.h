@@ -2,7 +2,6 @@
 #define SummaryScreen_h
 
 #include "Arduino.h"
-#include "M5ez.h"
 
 #include "ride/BikeRide.h"
 #include "screens/BikeInoScreen.h"

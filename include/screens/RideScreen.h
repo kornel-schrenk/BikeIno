@@ -2,13 +2,9 @@
 #define RideScreen_h
 
 #include "Arduino.h"
-#include "M5ez.h"
-#include "ezTime.h"
-#include "TinyGPS++.h"
 
 #include "ride/BikeRide.h"
 #include "screens/BikeInoScreen.h"
-#include "utils/TimeUtils.h"
 
 class RideScreen : public BikeInoScreen {
 

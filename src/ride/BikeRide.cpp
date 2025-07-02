@@ -57,9 +57,10 @@ void BikeRide::startRide(double currentSpeed, double latitude, double longitude,
     _rideData.rideTimestamp = millis();     
 
     //Start GPX output
-    this->_rideLogFilePath = "/RideIno/" + ez.clock.tz.dateTime("YmdHisv") + "-ride.gpx";
-
-    _rideData.rideStartDateTime = ez.clock.tz.dateTime("Y-m-d-H:i:s");    
+    // TODO: Obtain the right date and time
+    //this->_rideLogFilePath = "/RideIno/" + ez.clock.tz.dateTime("YmdHisv") + "-ride.gpx";
+    //_rideData.rideStartDateTime = ez.clock.tz.dateTime("Y-m-d-H:i:s");    
+    
     _gpx.setName(this->_rideLogFilePath);
     _gpx.setDesc("RideIno track on " + _rideData.rideStartDateTime);
 
@@ -127,7 +128,8 @@ void BikeRide::stopRide()
     this->_rideInProgress = false;
     this->_pausedRide = false;
 
-    _rideData.rideEndDateTime= ez.clock.tz.dateTime("Y-m-d-H:i:s");
+    // TODO: Obtain the right date and time
+    //_rideData.rideEndDateTime= ez.clock.tz.dateTime("Y-m-d-H:i:s");
 
     //Close GPX output
     String gpxOutput = _gpx.getTrackSegmentClose() + _gpx.getTrackClose() + _gpx.getClose();

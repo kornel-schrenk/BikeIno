@@ -2,8 +2,6 @@
 #define SpeedScreen_h
 
 #include "Arduino.h"
-#include "M5ez.h"
-#include "ezTime.h"
 #include "TinyGPS++.h"
 
 #include "screens/BikeInoScreen.h"

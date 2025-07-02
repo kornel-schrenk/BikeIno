@@ -11,9 +11,6 @@
 #define SCREEN_ABOUT      370
 #define SCREEN_SUMMARY    380
 
-#include "images/jpgs.h"
-#include "images/jpgsdark.h"
-
 #include "BikeInoBase.h"
 
 class BikeInoScreen : public BikeInoBase {
