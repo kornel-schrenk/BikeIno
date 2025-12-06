@@ -47,4 +47,5 @@ int RideScreen::handleButtonPress(String buttonName, TinyGPSPlus gps)
         this->_bikeRide->restartRide();
         return STAY_ON_SCREEN;
     }
+    return STAY_ON_SCREEN;
 }

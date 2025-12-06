@@ -5,11 +5,8 @@
 #include <esp_timer.h>
 #include <TinyGPS++.h>
 
-#include "screens/MainMenu.h"
 #include "screens/BikeInoScreen.h"
-#include "screens/HomeScreen.h"
 #include "screens/RideScreen.h"
-#include "screens/SpeedScreen.h"
 #include "screens/LogbookScreen.h"
 #include "screens/SensorScreen.h"
 #include "screens/SummaryScreen.h"
@@ -20,7 +17,7 @@
 
 #define HALL (36)
 
-const String VERSION_NUMBER = "0.1.0";
+const String VERSION_NUMBER = "0.1.1";
 
 ///////////////
 // Bike Ride //
@@ -51,14 +48,11 @@ SettingsUtils settingsUtils = SettingsUtils();
 /////////////
 
 // Screen properties
-int _currentScreen = SCREEN_HOME;
+int _currentScreen = SCREEN_RIDE;
 int16_t _lastPickedMainMenuIndex = 1;
 bool _backToMenu = false;
 
-MainMenu mainMenuScreen = MainMenu();
-HomeScreen homeScreen = HomeScreen();
 RideScreen rideScreen = RideScreen(&bikeRide);
-SpeedScreen speedScreen = SpeedScreen();
 LogbookScreen logbookScreen = LogbookScreen();
 SensorScreen sensorScreen = SensorScreen();
 SummaryScreen summaryScreen = SummaryScreen(&bikeRide);
