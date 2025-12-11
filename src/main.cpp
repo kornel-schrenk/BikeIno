@@ -1,27 +1,27 @@
-#include <M5ez.h>
-#include <M5Stack.h>
+#include <M5Unified.h>
+
+#define LV_CONF_INCLUDE_SIMPLE
+#include <lvgl.h>
+#include <esp_timer.h>
 #include <TinyGPS++.h>
 
-#include "images/jpgs.h"
-#include "images/jpgsdark.h"
+#include "ui/UIConstants.h"
+#include "ui/NavigationPane.h"
 
-#include "screens/MainMenu.h"
 #include "screens/BikeInoScreen.h"
-#include "screens/HomeScreen.h"
 #include "screens/RideScreen.h"
-#include "screens/SpeedScreen.h"
 #include "screens/LogbookScreen.h"
 #include "screens/SensorScreen.h"
 #include "screens/SummaryScreen.h"
+#include "screens/SettingsScreen.h"
 
-#include "pickers/SettingsPicker.h"
-
-#include "utils/TimeUtils.h"
 #include "utils/SettingsUtils.h"
 
 #include "ride/BikeRide.h"
 
-const String VERSION_NUMBER = "0.0.8";
+#define HALL_SENSOR_PIN 36
+
+const String VERSION_NUMBER = "0.2.1";
 
 ///////////////
 // Bike Ride //
@@ -41,6 +41,11 @@ HardwareSerial hardwareSerial(GPSUartNumber);
 // The TinyGPS++ object
 TinyGPSPlus gps;
 
+// Hall sensor state
+volatile unsigned long lastHallPulseTime = 0;
+volatile unsigned long hallPulseInterval = 0;
+volatile bool hallSensorActive = false;
+
 ///////////
 // Utils //
 ///////////
@@ -51,233 +56,230 @@ SettingsUtils settingsUtils = SettingsUtils();
 // SCREENS //
 /////////////
 
-// Screen properties
-int _currentScreen = SCREEN_HOME;
-int16_t _lastPickedMainMenuIndex = 1;
-bool _backToMenu = false;
+int _currentScreenId = SCREEN_RIDE;
+BikeInoScreen* _activeScreen = nullptr;
 
-MainMenu mainMenuScreen = MainMenu();
-HomeScreen homeScreen = HomeScreen();
 RideScreen rideScreen = RideScreen(&bikeRide);
-SpeedScreen speedScreen = SpeedScreen();
 LogbookScreen logbookScreen = LogbookScreen();
 SensorScreen sensorScreen = SensorScreen();
 SummaryScreen summaryScreen = SummaryScreen(&bikeRide);
+SettingsScreen settingsScreen = SettingsScreen(&settingsUtils);
 
-SettingsPicker settingsPicker;
+//////////
+// LVGL //
+//////////
+
+lv_display_t* lvDisplay;
+lv_indev_t* lvIndev;
+
+// Navigation pane (shared across all screens)
+NavigationPane navigationPane;
+
+// Battery update timer
+unsigned long lastBatteryUpdate = 0;
+const unsigned long BATTERY_UPDATE_INTERVAL = 30000; // 30 seconds
 
 /////////////////////
 // Utility methods //
 /////////////////////
 
-void openRideScreen()
-{
-  _backToMenu = false;
-  _currentScreen = SCREEN_RIDE;
-  rideScreen.init(settingsUtils.getBikeInoSettings(), gps);
+void lvglFlushDisplay(lv_display_t* display, const lv_area_t* area, uint8_t* px_map) {
+    uint32_t w = (area->x2 - area->x1 + 1);
+    uint32_t h = (area->y2 - area->y1 + 1);
+
+    lv_draw_sw_rgb565_swap(px_map, w * h);
+    M5.Display.pushImageDMA<uint16_t>(area->x1, area->y1, w, h, (uint16_t*)px_map);
+    lv_disp_flush_ready(display);
 }
 
-void openSensorScreen()
-{
-  _backToMenu = false;
-  _currentScreen = SCREEN_SENSOR;
-  sensorScreen.init(settingsUtils.getBikeInoSettings());
+uint32_t lvglTickFunction() {
+    return (esp_timer_get_time() / 1000LL);
 }
 
-void openSummaryScreen()
-{
-  _backToMenu = false;
-  _currentScreen = SCREEN_SUMMARY;
-  summaryScreen.init(settingsUtils.getBikeInoSettings());
+void touchpadHandler(lv_indev_t* drv, lv_indev_data_t* data) {
+    M5.update();
+    auto count = M5.Touch.getCount();
+
+    if (count == 0) {
+        data->state = LV_INDEV_STATE_RELEASED;
+    } else {
+        auto touch = M5.Touch.getDetail(0);
+        data->state = LV_INDEV_STATE_PRESSED;
+        data->point.x = touch.x;
+        data->point.y = touch.y;
+    }
+}
+
+// Hall sensor interrupt handler
+void IRAM_ATTR hallSensorISR() {
+    unsigned long currentTime = micros();
+    if (currentTime - lastHallPulseTime > 50000) { // Debounce: ignore pulses within 50ms
+        hallPulseInterval = currentTime - lastHallPulseTime;
+        lastHallPulseTime = currentTime;
+        hallSensorActive = true;
+    }
+}
+
+///////////////////////
+// Screen Management //
+///////////////////////
+
+void switchToScreen(int screenId);
+
+void navigationCallback(int screenId) {
+    if (screenId != _currentScreenId) {
+        switchToScreen(screenId);
+    }
+}
+
+BikeInoScreen* getScreenById(int screenId) {
+    switch (screenId) {
+        case SCREEN_RIDE:
+            return &rideScreen;
+        case SCREEN_SENSOR:
+            return &sensorScreen;
+        case SCREEN_LOGBOOK:
+            return &logbookScreen;
+        case SCREEN_SUMMARY:
+            return &summaryScreen;
+        case SCREEN_SETTINGS:
+            return &settingsScreen;
+        default:
+            return &rideScreen;
+    }
+}
+
+void switchToScreen(int screenId) {
+    Serial.print(F("Switching to screen: "));
+    Serial.println(screenId);
+
+    // Destroy current screen UI if exists
+    if (_activeScreen != nullptr && _activeScreen->isCreated()) {
+        _activeScreen->destroyUI();
+    }
+
+    // Get the new screen
+    _activeScreen = getScreenById(screenId);
+    _currentScreenId = screenId;
+
+    // Set up screen-specific data
+    BikeInoSettings currentSettings = settingsUtils.getBikeInoSettings();
+    if (screenId == SCREEN_RIDE) {
+        rideScreen.setGps(&gps);
+        rideScreen.setSettings(currentSettings);
+    } else if (screenId == SCREEN_SENSOR) {
+        sensorScreen.setGps(&gps);
+        sensorScreen.setSettings(currentSettings);
+    } else if (screenId == SCREEN_LOGBOOK) {
+        logbookScreen.setSettings(currentSettings);
+    } else if (screenId == SCREEN_SUMMARY) {
+        summaryScreen.setSettings(currentSettings);
+    } else if (screenId == SCREEN_SETTINGS) {
+        settingsScreen.setSettings(currentSettings);
+    }
+
+    // Create the new screen UI
+    _activeScreen->createUI();
+
+    // Create navigation pane on the new screen
+    navigationPane.create(_activeScreen->getScreen());
+    navigationPane.setActiveScreen(screenId);
+    navigationPane.setNavigationCallback(navigationCallback);
+
+    // Update battery indicator
+    int batteryLevel = M5.Power.getBatteryLevel();
+    navigationPane.updateBattery(batteryLevel);
+
+    // Load the screen
+    lv_screen_load(_activeScreen->getScreen());
+}
+
+void updateBatteryIndicator() {
+    unsigned long currentTime = millis();
+    if (currentTime - lastBatteryUpdate >= BATTERY_UPDATE_INTERVAL) {
+        lastBatteryUpdate = currentTime;
+        int batteryLevel = M5.Power.getBatteryLevel();
+        navigationPane.updateBattery(batteryLevel);
+    }
 }
 
 ///////////////////////
 // Lifecycle methods //
 ///////////////////////
 
-void setup()
-{
-  Serial.begin(115200);
-  Wire.begin();
-  M5.Power.begin();
+void setup() {
+    M5.begin();
 
-  hardwareSerial.begin(GPSBaudRate);
+    Serial.begin(115200);
 
-#include <themes/default.h>
-#include <themes/dark.h>
-  ez.begin();
+    hardwareSerial.begin(GPSBaudRate);
 
-  Serial.println("\n");
-  Serial.println(F("***********"));
-  Serial.println(F("* BikeIno *"));
-  Serial.println(F("***********"));
+    Serial.println("\n");
+    Serial.println(F("***********"));
+    Serial.println(F("* BikeIno *"));
+    Serial.println(F("***********"));
 
-  Serial.print(F("v"));
-  Serial.print(VERSION_NUMBER);
-  Serial.println("\n");
+    Serial.print(F("v"));
+    Serial.print(VERSION_NUMBER);
+    Serial.println("\n");
 
-  if (!SD.begin()) {
-    Serial.println(F("SD Card Mount Failed"));  
-  }
+    if (!SD.begin()) {
+        Serial.println(F("SD Card Mount Failed"));
+    }
 
-  homeScreen.initHomeScreen(settingsUtils.getBikeInoSettings());
+    Serial.println(F("LVGL init..."));
+    lv_init();
+    lv_tick_set_cb(lvglTickFunction);
+
+    lvDisplay = lv_display_create(SCREEN_WIDTH, SCREEN_HEIGHT);
+    lv_display_set_flush_cb(lvDisplay, lvglFlushDisplay);
+
+    static lv_color_t displayBuffer[SCREEN_WIDTH * 15];
+    lv_display_set_buffers(lvDisplay, displayBuffer, nullptr, sizeof(displayBuffer), LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    lvIndev = lv_indev_create();
+    lv_indev_set_type(lvIndev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(lvIndev, touchpadHandler);
+
+    Serial.println(F("Hall sensor init..."));
+    pinMode(HALL_SENSOR_PIN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(HALL_SENSOR_PIN), hallSensorISR, FALLING);
+
+    Serial.println(F("Power init..."));
+    M5.Power.begin();
+
+    Serial.println(F("Loading initial screen..."));
+    switchToScreen(SCREEN_RIDE);
+
+    Serial.println(F("BikeIno init completed!"));
 }
 
-void loop()
-{
-  // In every second load sensor data
-  if (secondChanged())
-  {
-    while (hardwareSerial.available() > 0)
-    {
-      gps.encode(hardwareSerial.read());
+void loop() {
+    // Feed GPS data
+    while (hardwareSerial.available() > 0) {
+        gps.encode(hardwareSerial.read());
     }
 
-    if (gps.charsProcessed() < 10)
-    {
-      Serial.println(F("WARNING: No GPS data.  Check wiring."));
+    // Check if Hall sensor has timed out (no pulse for 3 seconds = stopped)
+    if (hallSensorActive && (micros() - lastHallPulseTime > 3000000)) {
+        hallSensorActive = false;
+        hallPulseInterval = 0;
     }
-  }
 
-  String buttonPressed = "";
-  if (!_backToMenu)
-  {
-    buttonPressed = ez.buttons.poll();
-    if (buttonPressed != "")
-    {
-      Serial.println("Button pressed: " + buttonPressed);
+    // Update Hall sensor data for RideScreen
+    if (_currentScreenId == SCREEN_RIDE) {
+        rideScreen.setHallSensorData(hallSensorActive, hallPulseInterval);
     }
-  }
-  if (_backToMenu || buttonPressed == "Menu")
-  {
-    ezMenu mainMenu = mainMenuScreen.initMainMenu();
-    // Set the menu selection based on the last visited menu item
-    mainMenu.pickItem(_lastPickedMainMenuIndex - 1);
-    // Run the stuff behind the menu item and return with its index + 1
-    _lastPickedMainMenuIndex = mainMenu.runOnce();
 
-    switch (_lastPickedMainMenuIndex)
-    {
-    case 0:
-      _backToMenu = false;
-      _currentScreen = SCREEN_HOME;
-      homeScreen.initHomeScreen(settingsUtils.getBikeInoSettings());
-      break;
-    case 1:
-      openRideScreen();
-      break;
-    case 2:
-      _backToMenu = false;
-      _currentScreen = SCREEN_SPEED;
-      speedScreen.init(settingsUtils.getBikeInoSettings());
-      break;
-    case 3:
-      _backToMenu = false;
-      _currentScreen = SCREEN_LOGBOOK;
-      logbookScreen.init(settingsUtils.getBikeInoSettings());
-      break;
-    case 4:
-      openSensorScreen();
-      break;
-    case 5:
-      settingsPicker.runOnce("Settings");
-      _backToMenu = true;
-      _currentScreen = SCREEN_SETTINGS;
-      break;
-    case 6:
-      _currentScreen = SCREEN_ABOUT;
-      _backToMenu = true;
-      ez.msgBox("About", "BikeIno | Version: " + VERSION_NUMBER + "| Author: kornel@schrenk.hu", "Menu");
-      break;
+    // Update the active screen
+    if (_activeScreen != nullptr) {
+        _activeScreen->update();
     }
-  }
-  else if (buttonPressed != "")
-  {
-    //Handle button press on the current screen
-    switch (_currentScreen)
-    {
-    case SCREEN_HOME:
-      if (homeScreen.handleButtonPress(buttonPressed) == SCREEN_RIDE)
-      {
-        openRideScreen();
-      }
-      break;
-    case SCREEN_RIDE:
-      if (rideScreen.handleButtonPress(buttonPressed, gps) == SCREEN_SUMMARY)
-      {
-        openSummaryScreen();
-      } 
-      break;
-    case SCREEN_SPEED:
-      speedScreen.handleButtonPress(buttonPressed);
-      break;
-    case SCREEN_LOGBOOK:
-      logbookScreen.handleButtonPress(buttonPressed);
-      break;
-    case SCREEN_SENSOR:
-      sensorScreen.handleButtonPress(buttonPressed);
-      break;
-    case SCREEN_SUMMARY:
-      summaryScreen.handleButtonPress(buttonPressed);
-      break;  
-    }
-  }
-  else
-  {
-    //NO Button was pressed - Normal operation
-    switch (_currentScreen)
-    {
-    case SCREEN_HOME:
-      homeScreen.displayHomeClock();
-      break;
-    case SCREEN_RIDE:
-      if (minuteChanged())
-      {
-        rideScreen.refreshClockWidget();
-      }
-      if (minuteChanged() || secondChanged())
-      {
-        rideScreen.display(gps);        
-      }
-      break;
-    case SCREEN_SPEED:
-      if (minuteChanged())
-      {
-        speedScreen.refreshClockWidget();
-      }
-      if (minuteChanged() || secondChanged())
-      {
-        speedScreen.display(gps);
-      }
-      break;
-    case SCREEN_LOGBOOK:
-      if (minuteChanged())
-      {
-        logbookScreen.refreshClockWidget();
-      }
-      break;
-    case SCREEN_SENSOR:
-      if (minuteChanged())
-      {
-        sensorScreen.refreshClockWidget();
-      }
-      if (minuteChanged() || secondChanged())
-      {
-        sensorScreen.display(gps);
-      }
-      break;
-    case SCREEN_SETTINGS:
-      if (minuteChanged())
-      {
-        settingsPicker.refreshClockWidget();
-      }
-      break;
-    case SCREEN_SUMMARY:
-      if (minuteChanged())
-      {
-        settingsPicker.refreshClockWidget();
-      }
-      break;      
-    }
-  }
+
+    // Periodically update battery indicator
+    updateBatteryIndicator();
+
+    // LVGL task handler
+    lv_task_handler();
+    vTaskDelay(1);
 }

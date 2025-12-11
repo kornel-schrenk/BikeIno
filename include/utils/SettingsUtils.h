@@ -3,8 +3,6 @@
 
 #include "Arduino.h"
 #include "Preferences.h"
-#include "M5ez.h"
-#include "ezTime.h"
 
 #include "BikeInoBase.h"
 
@@ -16,6 +14,7 @@ class SettingsUtils : public BikeInoBase {
         
         void storeSoundSetting(bool value);
         void storeImperialUnitsSetting(bool value);
+        void storeWheelTyreSetting(uint8_t index);
 
     private:  
         
