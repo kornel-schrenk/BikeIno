@@ -6,20 +6,48 @@
 #include "ride/BikeRide.h"
 #include "screens/BikeInoScreen.h"
 
+// Statistics data structure
+struct TripStatistics {
+    double totalDistance;
+    unsigned long totalDuration;
+    unsigned int tripCount;
+    double avgDistance;
+    double avgDuration;
+    double avgSpeed;
+};
+
 class SummaryScreen : public BikeInoScreen {
 
-    public:       
-        SummaryScreen(BikeRide* bikeRide);
+public:
+    SummaryScreen(BikeRide* bikeRide);
 
-        void init(BikeInoSettings bikeInoSettings);
+    // Override base class methods
+    void createUI() override;
+    void destroyUI() override;
+    void update() override;
 
-        void display();
+    // Set settings
+    void setSettings(BikeInoSettings settings);
 
-        void handleButtonPress(String buttonName);
+private:
+    BikeRide* _bikeRide;
+    TripStatistics _stats;
 
-    private:        
-        BikeInoSettings _bikeInoSettings;
-        BikeRide* _bikeRide;        
+    // Statistics labels
+    lv_obj_t* _titleLabel;
+    lv_obj_t* _totalDistLabel;
+    lv_obj_t* _totalTimeLabel;
+    lv_obj_t* _tripCountLabel;
+    lv_obj_t* _avgDistLabel;
+    lv_obj_t* _avgTimeLabel;
+    lv_obj_t* _avgSpeedLabel;
+
+    void _createStatsList();
+    void _loadStatistics();
+    void _updateLabels();
+
+    // Helper to create a stat row
+    lv_obj_t* _createStatRow(lv_obj_t* parent, const char* label, const char* value, int yPos);
 };
 
 #endif

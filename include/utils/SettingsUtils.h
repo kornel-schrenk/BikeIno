@@ -14,6 +14,7 @@ class SettingsUtils : public BikeInoBase {
         
         void storeSoundSetting(bool value);
         void storeImperialUnitsSetting(bool value);
+        void storeWheelTyreSetting(uint8_t index);
 
     private:  
         

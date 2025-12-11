@@ -8,9 +8,10 @@ BikeInoSettings SettingsUtils::getBikeInoSettings()
     prefs.begin("BikeIno", true);	// read-only
     bikeInoSettings.soundSetting = prefs.getBool("sound", false);
     bikeInoSettings.imperialUnitsSetting = prefs.getBool("imperial", false);
-    prefs.end();    
+    bikeInoSettings.wheelTyreIndex = prefs.getUChar("wheelTyre", 4); // Default: 700 x 25C
+    prefs.end();
 
-    return bikeInoSettings;    
+    return bikeInoSettings;
 }
 
 void SettingsUtils::storeSoundSetting(bool value)
@@ -31,16 +32,27 @@ void SettingsUtils::storeImperialUnitsSetting(bool value)
     prefs.end();
 }
 
+void SettingsUtils::storeWheelTyreSetting(uint8_t index)
+{
+    //Save the modified wheel tyre setting
+    Preferences prefs;
+    prefs.begin("BikeIno");
+    prefs.putUChar("wheelTyre", index);
+    prefs.end();
+}
+
 BikeInoSettings SettingsUtils::resetSettings()
 {
     struct BikeInoSettings bikeInoSettings;
     bikeInoSettings.soundSetting = false;
     bikeInoSettings.imperialUnitsSetting = false;
+    bikeInoSettings.wheelTyreIndex = 4; // Default: 700 x 25C
 
     Preferences prefs;
     prefs.begin("BikeIno");
     prefs.putBool("sound", bikeInoSettings.soundSetting);
     prefs.putBool("imperial", bikeInoSettings.imperialUnitsSetting);
+    prefs.putUChar("wheelTyre", bikeInoSettings.wheelTyreIndex);
     prefs.end();
 
     return bikeInoSettings;
