@@ -9,8 +9,14 @@ RideScreen::RideScreen(BikeRide* bikeRide) {
     _hallActive = false;
     _hallPulseInterval = 0;
 
+    // StreamBack state
+    _streamBackEnabled = true;
+    _streamBackData = StreamBackData();
+
     // Initialize pointers
     _topPane = nullptr;
+    _streamBackButton = nullptr;
+    _streamBackIcon = nullptr;
     _gpsButton = nullptr;
     _gpsIcon = nullptr;
     _hallButton = nullptr;
@@ -38,6 +44,10 @@ void RideScreen::setHallSensorData(bool active, unsigned long pulseInterval) {
     _hallPulseInterval = pulseInterval;
 }
 
+void RideScreen::setStreamBackData(const StreamBackData& data) {
+    _streamBackData = data;
+}
+
 void RideScreen::setSettings(BikeInoSettings settings) {
     _settings = settings;
 }
@@ -58,6 +68,8 @@ void RideScreen::destroyUI() {
 
     // Reset all pointers
     _topPane = nullptr;
+    _streamBackButton = nullptr;
+    _streamBackIcon = nullptr;
     _gpsButton = nullptr;
     _gpsIcon = nullptr;
     _hallButton = nullptr;
@@ -162,6 +174,22 @@ void RideScreen::_createTopPane() {
     lv_obj_center(_gpsIcon);
     lv_obj_add_event_cb(_gpsButton, _gpsButtonHandler, LV_EVENT_CLICKED, this);
 
+    // StreamBack button (leftmost sensor icon)
+    _streamBackButton = lv_button_create(_topPane);
+    lv_obj_set_size(_streamBackButton, 40, 28);
+    lv_obj_align(_streamBackButton, LV_ALIGN_TOP_RIGHT, -88, 1);
+    lv_obj_set_style_bg_color(_streamBackButton, COLOR_BACKGROUND, LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(_streamBackButton, lv_color_hex(0x404040), LV_STATE_PRESSED);
+    lv_obj_set_style_border_width(_streamBackButton, 1, 0);
+    lv_obj_set_style_border_color(_streamBackButton, COLOR_INACTIVE, 0);
+    lv_obj_set_style_radius(_streamBackButton, 4, 0);
+
+    _streamBackIcon = lv_label_create(_streamBackButton);
+    lv_label_set_text(_streamBackIcon, LV_SYMBOL_WIFI);
+    lv_obj_set_style_text_font(_streamBackIcon, &lv_font_montserrat_16, 0);
+    lv_obj_center(_streamBackIcon);
+    lv_obj_add_event_cb(_streamBackButton, _streamBackButtonHandler, LV_EVENT_CLICKED, this);
+
     _updateSensorIcons();
 }
 
@@ -246,6 +274,20 @@ void RideScreen::_createBottomPane() {
 void RideScreen::_updateSensorIcons() {
     if (_gpsIcon == nullptr || _hallIcon == nullptr) return;
 
+    // StreamBack icon color
+    if (_streamBackIcon != nullptr) {
+        lv_color_t sbColor;
+        if (!_streamBackEnabled) {
+            sbColor = COLOR_INACTIVE;  // Gray - disabled
+        } else if (_streamBackData.isValid) {
+            sbColor = COLOR_ACTIVE;    // Blue - receiving data
+        } else {
+            sbColor = lv_color_hex(0xFFEB3B);  // Yellow - enabled but no data
+        }
+        lv_obj_set_style_text_color(_streamBackIcon, sbColor, 0);
+        lv_obj_set_style_border_color(_streamBackButton, _streamBackEnabled ? COLOR_ACTIVE : COLOR_INACTIVE, 0);
+    }
+
     // GPS icon color
     bool gpsValid = _gps != nullptr && _gps->location.isValid();
     lv_color_t gpsColor = _gpsEnabled ? (gpsValid ? COLOR_ACTIVE : lv_color_hex(0xFFEB3B)) : COLOR_INACTIVE;
@@ -263,8 +305,14 @@ void RideScreen::_updateSpeedDisplay() {
 
     double speed = 0.0;
 
-    // Hall sensor takes priority if enabled and active
-    if (_hallEnabled && _hallActive) {
+    // Speed priority: StreamBack > Hall > GPS
+    if (_streamBackEnabled && _streamBackData.isValid) {
+        // StreamBack provides speed in km/h
+        speed = _streamBackData.speed;
+        if (_settings.imperialUnitsSetting) {
+            speed *= 0.621371;  // km/h to mph
+        }
+    } else if (_hallEnabled && _hallActive) {
         speed = _calculateSpeedFromHall();
     } else if (_gpsEnabled && _gps != nullptr && _gps->speed.isValid()) {
         speed = _settings.imperialUnitsSetting ? _gps->speed.mph() : _gps->speed.kmph();
@@ -412,5 +460,13 @@ void RideScreen::_stopButtonHandler(lv_event_t* e) {
         screen->_bikeRide->stopRide();
         screen->_updateRideControls();
         // TODO: Navigate to summary screen
+    }
+}
+
+void RideScreen::_streamBackButtonHandler(lv_event_t* e) {
+    RideScreen* screen = static_cast<RideScreen*>(lv_event_get_user_data(e));
+    if (screen != nullptr) {
+        screen->_streamBackEnabled = !screen->_streamBackEnabled;
+        screen->_updateSensorIcons();
     }
 }

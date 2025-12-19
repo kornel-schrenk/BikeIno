@@ -1,4 +1,5 @@
 #include <M5Unified.h>
+#include <WiFi.h>
 
 #define LV_CONF_INCLUDE_SIMPLE
 #include <lvgl.h>
@@ -7,6 +8,7 @@
 
 #include "ui/UIConstants.h"
 #include "ui/NavigationPane.h"
+#include "streamback/StreamBackClient.h"
 
 #include "screens/BikeInoScreen.h"
 #include "screens/RideScreen.h"
@@ -21,7 +23,7 @@
 
 #define HALL_SENSOR_PIN 36
 
-const String VERSION_NUMBER = "0.2.1";
+const String VERSION_NUMBER = "0.2.2";
 
 ///////////////
 // Bike Ride //
@@ -51,6 +53,23 @@ volatile bool hallSensorActive = false;
 ///////////
 
 SettingsUtils settingsUtils = SettingsUtils();
+
+////////////////
+// StreamBack //
+////////////////
+
+// Hardcoded configuration for development
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* MQTT_BROKER = "streamback.example.com";
+const int MQTT_PORT = 1883;
+const char* MQTT_TOPIC = "streamback/bikeino/data";
+
+StreamBackClient streamBackClient;
+
+// Auto-ride management
+bool streamBackAutoRideStarted = false;
+unsigned long lastStreamBackDataTime = 0;
 
 /////////////
 // SCREENS //
@@ -248,6 +267,9 @@ void setup() {
     Serial.println(F("Power init..."));
     M5.Power.begin();
 
+    Serial.println(F("StreamBack init..."));
+    streamBackClient.begin(WIFI_SSID, WIFI_PASSWORD, MQTT_BROKER, MQTT_PORT, MQTT_TOPIC);
+
     Serial.println(F("Loading initial screen..."));
     switchToScreen(SCREEN_RIDE);
 
@@ -266,9 +288,50 @@ void loop() {
         hallPulseInterval = 0;
     }
 
-    // Update Hall sensor data for RideScreen
+    // StreamBack MQTT processing
+    streamBackClient.loop();
+
+    // Get StreamBack data
+    StreamBackData sbData = streamBackClient.getData();
+
+    // Auto-start ride when StreamBack data arrives
+    if (sbData.isValid && !streamBackAutoRideStarted && !bikeRide.isRideInProgress()) {
+        Serial.println(F("StreamBack: Auto-starting ride"));
+        bikeRide.startRide(sbData.speed, sbData.latitude, sbData.longitude, sbData.altitude);
+        streamBackAutoRideStarted = true;
+        lastStreamBackDataTime = millis();
+    }
+
+    // Auto-stop ride when StreamBack data times out (5 seconds)
+    if (streamBackAutoRideStarted && !sbData.isValid) {
+        if (millis() - lastStreamBackDataTime > 5000) {
+            Serial.println(F("StreamBack: Auto-stopping ride (timeout)"));
+            bikeRide.stopRide();
+            streamBackAutoRideStarted = false;
+        }
+    }
+
+    // Update last data time when valid
+    if (sbData.isValid) {
+        lastStreamBackDataTime = millis();
+    }
+
+    // Progress ride with StreamBack data if active
+    if (bikeRide.isRideInProgress() && sbData.isValid && !bikeRide.isRidePaused()) {
+        // Convert StreamBack duration to UTC time string (HH:MM:SS format)
+        unsigned long durationSec = sbData.duration / 1000;
+        char utcTime[12];
+        snprintf(utcTime, sizeof(utcTime), "%02lu:%02lu:%02lu",
+                 (durationSec / 3600) % 24, (durationSec / 60) % 60, durationSec % 60);
+
+        bikeRide.progressRide(true, sbData.speed, sbData.latitude,
+                              sbData.longitude, sbData.altitude, String(utcTime));
+    }
+
+    // Update sensor data for RideScreen
     if (_currentScreenId == SCREEN_RIDE) {
         rideScreen.setHallSensorData(hallSensorActive, hallPulseInterval);
+        rideScreen.setStreamBackData(sbData);
     }
 
     // Update the active screen

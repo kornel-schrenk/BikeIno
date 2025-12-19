@@ -23,6 +23,9 @@ public:
     // Set Hall sensor data
     void setHallSensorData(bool active, unsigned long pulseInterval);
 
+    // Set StreamBack data
+    void setStreamBackData(const StreamBackData& data);
+
     // Set settings
     void setSettings(BikeInoSettings settings);
 
@@ -36,8 +39,14 @@ private:
     bool _hallActive;
     unsigned long _hallPulseInterval;
 
+    // StreamBack state
+    bool _streamBackEnabled;
+    StreamBackData _streamBackData;
+
     // Top pane - sensor indicators
     lv_obj_t* _topPane;
+    lv_obj_t* _streamBackButton;
+    lv_obj_t* _streamBackIcon;
     lv_obj_t* _gpsButton;
     lv_obj_t* _gpsIcon;
     lv_obj_t* _hallButton;
@@ -76,6 +85,7 @@ private:
     double _calculateSpeedFromHall();
 
     // Event handlers
+    static void _streamBackButtonHandler(lv_event_t* e);
     static void _gpsButtonHandler(lv_event_t* e);
     static void _hallButtonHandler(lv_event_t* e);
     static void _startButtonHandler(lv_event_t* e);
